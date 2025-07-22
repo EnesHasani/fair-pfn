@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from model import FairPFNModel
-from datasets import FairPFNDataset
-from mlp_generator import MLPGenerator
+from data_generator import DataGenerator
 
 
 def pretrain_fairpfn(
@@ -22,25 +21,15 @@ def pretrain_fairpfn(
     for epoch in range(E):
         print(f"Epoch {epoch+1}/{E}")
         for step in range(S):
-            generator = MLPGenerator(U=U, H=H, M=M, N=N)
-            Dbias, Dfair = generator.generate_dataset()
+            generator = DataGenerator(U=U, H=H, M=M, N=N, device=device)
+            Dbias, y_fair = generator.generate_dataset()
 
-            split = int(0.7 * len(Dbias))           #question: How should I split the dataset?
-            train_data = FairPFNDataset(Dbias[:split], Dfair[:split])
-            val_data = FairPFNDataset(Dbias[split:], Dfair[split:])
+            split = int(0.7 * len(Dbias))
 
-
-            train_biased_features = torch.cat((train_data.A, train_data.X), dim=1).unsqueeze(1).to(device)
-            train_biased_labels = train_data.y_biased.unsqueeze(1).to(device)
-            val_biased_features = torch.cat((val_data.A, val_data.X), dim=1).unsqueeze(1).to(device)
-            val_fair_labels = val_data.y_fair.to(device)
+            train_biased_features = Dbias[:split, :-1].unsqueeze(1).to(device)  
+            train_biased_labels = Dbias[:split, -1].unsqueeze(1).to(device)
+            val_biased_features = Dbias[split:, :-1].unsqueeze(1).to(device)
             num_classes = len(torch.unique(train_biased_labels))
-
-            # Shapes
-            print(f"  Train biased features shape: {train_biased_features.shape}")
-            print(f"  Train biased labels shape: {train_biased_labels.shape}")
-            print(f"  Val biased features shape: {val_biased_features.shape}")
-            print(f"  Val fair labels shape: {val_fair_labels.shape}")
 
             model.train()
             optimizer.zero_grad()
@@ -50,10 +39,11 @@ def pretrain_fairpfn(
                 test_x = val_biased_features,
                 categorical_inds=None,
             )
+
             pred_fair_logits = model(**forward_kwargs)
             pred_fair_logits = pred_fair_logits[:, :, :num_classes]
             pred_fair_logits = pred_fair_logits.reshape(-1, pred_fair_logits.shape[-1])
-            loss = criterion(pred_fair_logits, val_fair_labels.squeeze(1).long())
+            loss = criterion(pred_fair_logits, y_fair[split:])
 
             loss.backward()
             optimizer.step()
