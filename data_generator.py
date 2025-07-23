@@ -65,8 +65,8 @@ class DataGenerator:
 
         # Biased pass
         dataset_biased = self._forward_bias(X0, noise)
-        dataset_biased[0] = torch.where(dataset_biased[0] < self.a_t, self.a0, self.a1)
-        dataset_biased[-1] = (dataset_biased[-1] > self.y_t).long()
+        dataset_biased[:, 0] = torch.where(dataset_biased[:, 0] < self.a_t, self.a0, self.a1)
+        dataset_biased[:, -1] = (dataset_biased[:, -1] > self.y_t).long()
 
         # Fair pass
         y_fair = self._forward_fair(X0, noise)
