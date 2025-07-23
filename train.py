@@ -8,10 +8,10 @@ from data_generator import DataGenerator
 def pretrain_fairpfn(
     E: int,               # Epochs
     S: int,               # Steps per epoch
-    U: int = 8,           # Exogenous variables
+    U: int = 16,           # Exogenous variables
     H: int = 3,           # MLP depth
-    M: int = 6,           # Features
-    N: int = 128,         # Samples per dataset
+    M: int = 16,           # Features
+    N: int = 256,         # Samples per dataset
     device="cuda" if torch.cuda.is_available() else "cpu"
 ):
     model = FairPFNModel(device)
@@ -23,6 +23,7 @@ def pretrain_fairpfn(
         for step in range(S):
             generator = DataGenerator(U=U, H=H, M=M, N=N, device=device)
             Dbias, y_fair = generator.generate_dataset()
+
 
             split = int(0.7 * len(Dbias))
 

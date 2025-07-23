@@ -10,11 +10,11 @@ class DataGenerator:
         self.N = N                  # Number of samples
         self.device = device
         self.W = [torch.randn(U, U, device=self.device) for _ in range(H)] 
-        self.P = [self._sample_sparsity_mask(U) for _ in range(H)]
+        self.P = [self._sample_sparsity_mask() for _ in range(H)]
         self.z = [self._sample_nonlinearity() for _ in range(H)]
         self.X = torch.randn(U, H + 1, device=self.device)
         self.k = torch.randint(0, U, (1,)).item()  # Protected attr. location in X0
-        self.locations_X_biased = torch.randint(0, 2, (H - 1, U), dtype=torch.bool, device=self.device)
+        self.locations_X_biased = self._sample_locations()
         self.location_y_biased = torch.randint(0, U, (1,)).item()
         self.min_X0, self.max_X0 = min(self.X[:, 0]), max(self.X[:, 0])
         self.a_t, self.y_t = self._sample_thresholds()
@@ -24,8 +24,14 @@ class DataGenerator:
     def _sample_nonlinearity(self):
         return random.choice([torch.tanh, torch.relu, lambda x: x])
 
-    def _sample_sparsity_mask(self, size):
-        return torch.bernoulli(torch.full((size, size), 0.5, device=self.device)).bool()
+    def _sample_sparsity_mask(self):
+        return torch.bernoulli(torch.full((self.U, self.U), 0.5, device=self.device)).bool()
+
+    def _sample_locations(self):
+        location_mask = torch.zeros((self.H - 1, self.U), dtype=torch.int, device=self.device)
+        idx = torch.randperm((self.H - 1) * self.U, device=self.device)[:self.M]
+        location_mask.view(-1)[idx] = 1
+        return location_mask
 
     def _sample_thresholds(self):
         a_t = truncnorm.rvs(a = self.min_X0, b = self.max_X0, loc=0, scale=1)
