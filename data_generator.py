@@ -16,7 +16,7 @@ class DataGenerator:
         self.k = torch.randint(0, U, (1,)).item()  # Protected attr. location in X0
         self.locations_X_biased = self._sample_locations()
         self.location_y_biased = torch.randint(0, U, (1,)).item()
-        self.min_X0, self.max_X0 = min(self.X[:, 0]), max(self.X[:, 0])
+        self.min_X0, self.max_X0 = min(self.X[:, 0]).item(), max(self.X[:, 0]).item()
         self.a_t, self.y_t = self._sample_thresholds()
         self.a0 = torch.empty(1).uniform_(self.min_X0, self.a_t).item()
         self.a1 = torch.empty(1).uniform_(self.a_t, self.max_X0).item()
@@ -28,14 +28,16 @@ class DataGenerator:
         return torch.bernoulli(torch.full((self.U, self.U), 0.5, device=self.device)).bool()
 
     def _sample_locations(self):
+        if self.M > (self.H - 1) * self.U:
+            raise ValueError("M must be less than or equal to (H-1) * U")
         location_mask = torch.zeros((self.H - 1, self.U), dtype=torch.int, device=self.device)
         idx = torch.randperm((self.H - 1) * self.U, device=self.device)[:self.M]
         location_mask.view(-1)[idx] = 1
-        return location_mask
+        return location_mask.bool()
 
     def _sample_thresholds(self):
         a_t = truncnorm.rvs(a = self.min_X0, b = self.max_X0, loc=0, scale=1)
-        y_t = torch.empty(1).uniform_(0.2, 0.8).item()  # Make binary targets more balanced
+        y_t = torch.empty(1).uniform_(0, 1).item()
         return a_t, y_t
 
     def _forward_bias(self, X0, noise):

@@ -1,0 +1,15 @@
+wandb_name: FairPFN-pretraining
+E: 300       # Epochs
+S: 5000      # Steps per epoch
+U: 16       # Exogenous variables
+H: 3        # MLP Depth
+M: 16       # Features
+N: 256      # Samples per dataset
+batch_size: 256
+learning_rate: 1e-4
+criterion: CrossEntropyLoss
+optimizer: Adam
+model: FairPFNModel
+device: cuda
+pregen_data_path: data/pre_generated_data.parquet
+use_pre_genereated_data: False
