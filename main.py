@@ -19,7 +19,8 @@ def main():
         pretrain_fairpfn_on_pre_generated_data(
             E=config["E"],
             batch_size=config["batch_size"],
-            filename=Path(config["pregen_data_path"])
+            filename=Path(config["pregen_data_path"]),
+            lr = float(config["learning_rate"]),
         )
     else:
         pretrain_fairpfn(
@@ -28,7 +29,8 @@ def main():
             U=config["U"],
             H=config["H"],
             M=config["M"],
-            N=config["N"]
+            N=config["N"],
+            lr = float(config["learning_rate"]),
         )
 
 if __name__ == "__main__":

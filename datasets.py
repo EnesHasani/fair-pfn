@@ -52,3 +52,13 @@ class SyntheticDataset(IterableDataset):
             features = torch.tensor(batch_df.iloc[:, :-1].values, dtype=torch.float32)
             labels = torch.tensor(batch_df.iloc[:, -1].values, dtype=torch.long)
             yield features, labels
+
+# pre_generate_data(
+#     D=100,  # Number of datasets to generate
+#     U=16,   # Exogenous variables
+#     H=3,    # MLP depth
+#     M=16,   # Features
+#     N=512,  # Samples per dataset
+#     filename="data/pre_generated_data.parquet",
+#     device="cuda" if torch.cuda.is_available() else "cpu"
+# )

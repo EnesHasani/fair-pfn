@@ -4,14 +4,14 @@
 #SBATCH --partition mlhiwidlc_gpu-rtx2080     # short: -p <partition_name>
 
 # Define a name for your job
-#SBATCH --job-name fair_pfn_pretraining             # short: -J <job name>
+#SBATCH --job-name fair_pfn_pretraing-reinit-architect            # short: -J <job name>
 
 # Define the files to write the outputs of the job to.
 # Please note the SLURM will not create this directory for you, and if it is missing, no logs will be saved.
 # You must create the directory yourself. In this case, that means you have to create the "logs" directory yourself.
 
-#SBATCH --output logs/%x-%A-fair_pfn_pretraining.out   # STDOUT  %x and %A will be replaced by the job name and job id, respectively. short: -o logs/%x-%A-job_name.out
-#SBATCH --error logs/%x-%A-fair_pfn_pretraining.err    # STDERR  short: -e logs/%x-%A-job_name.out
+#SBATCH --output logs/%x-%A-fair_pfn_pretraing-reinit-architect.out   # STDOUT  %x and %A will be replaced by the job name and job id, respectively. short: -o logs/%x-%A-job_name.out
+#SBATCH --error logs/%x-%A-fair_pfn_pretraing-reinit-architect.err    # STDERR  short: -e logs/%x-%A-job_name.out
 
 # Define the amount of memory required per node
 #SBATCH --mem 12GB
