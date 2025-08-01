@@ -5,7 +5,7 @@ from tabpfn.base import load_model_criterion_config
 
 
 class FairPFNModel(nn.Module):
-    def __init__(self, device):
+    def __init__(self, device="cuda" if torch.cuda.is_available() else "cpu"):
         super().__init__()
         self.tabpfn, _, _ = load_model_criterion_config(
             model_path=None,
@@ -15,7 +15,8 @@ class FairPFNModel(nn.Module):
             version="v2",
             download=True
         )
-        self.tabpfn = self.tabpfn.to(device)
+        self.device = device
+        self.tabpfn = self.tabpfn.to(self.device)
         for param in self.tabpfn.parameters():
             param.requires_grad = True
 
@@ -31,7 +32,7 @@ class FairPFNModel(nn.Module):
             path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"The model file {path} does not exist.")
-        self.tabpfn.load_state_dict(torch.load(path, map_location=self.tabpfn.device))
+        self.tabpfn.load_state_dict(torch.load(path, map_location=self.device))
         if eval_mode:
             self.tabpfn.eval()
             for param in self.tabpfn.parameters():

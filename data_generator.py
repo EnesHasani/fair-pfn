@@ -12,11 +12,12 @@ class DataGenerator:
         self.W = [torch.randn(U, U, device=self.device) for _ in range(H)] 
         self.P = [self._sample_sparsity_mask() for _ in range(H)]
         self.z = [self._sample_nonlinearity() for _ in range(H)]
-        self.X = torch.randn(U, H + 1, device=self.device)
+        self.X0 = torch.randn(self.N, self.U, device=self.device)
+        self.noise = torch.randn(self.H, self.N, self.U, device=self.device)
         self.k = torch.randint(0, U, (1,)).item()  # Protected attr. location in X0
         self.locations_X_biased = self._sample_locations()
         self.location_y_biased = torch.randint(0, U, (1,)).item()
-        self.min_X0, self.max_X0 = min(self.X[:, 0]).item(), max(self.X[:, 0]).item()
+        self.min_X0, self.max_X0 = min(self.X0[0, :]).item(), max(self.X0[0, :]).item()
         self.a_t, self.y_t = self._sample_thresholds()
         self.a0 = torch.empty(1).uniform_(self.min_X0, self.a_t).item()
         self.a1 = torch.empty(1).uniform_(self.a_t, self.max_X0).item()
@@ -40,46 +41,53 @@ class DataGenerator:
         y_t = torch.empty(1).uniform_(0, 1).item()
         return a_t, y_t
 
-    def _forward_bias(self, X0, noise):
-        dataset = [X0[:, self.k].unsqueeze(1)]
+    def _forward(self):
+        dataset = [self.X0[:, self.k].unsqueeze(1)]
 
-        activations = X0
+        activations = self.X0
         for i in range(0, self.H - 1):
             W = self.W[i]
-            linear_out = activations @ (self.P[i] * W).T + noise[i]
+            linear_out = activations @ (self.P[i] * W).T + self.noise[i]
             activations = self.z[i](linear_out)
             dataset.append(activations[:, self.locations_X_biased[i]])
 
         W_final = self.W[-1]
-        linear_out = activations @ (self.P[-1] * W_final).T + noise[-1]
+        linear_out = activations @ (self.P[-1] * W_final).T + self.noise[-1]
         final_activations = self.z[-1](linear_out)
         dataset.append(final_activations[:, self.location_y_biased].unsqueeze(1))
         return torch.cat(dataset, dim=1)
 
-    def _forward_fair(self, X0, noise):
-        self.W[0][:, self.k] = 0
+    def _forward_fair(self):
+        W_ = self.W.copy()
+        W_[0] = self.W[0].clone()
+        W_[0][:, self.k] = 0
 
-        activations = X0
+        activations = self.X0
         for i in range(0, self.H):
-            W = self.W[i]
-            linear_out = activations @ (self.P[i] * W).T + noise[i]
+            W = W_[i]
+            linear_out = activations @ (self.P[i] * W).T + self.noise[i]
             activations = self.z[i](linear_out)
 
         return activations[:, self.location_y_biased]
 
     def generate_dataset(self):
-        X0 = torch.randn(self.N, self.U, device=self.device)
-        noise = torch.randn(self.H, self.N, self.U, device=self.device)
-
         # Biased pass
-        dataset_biased = self._forward_bias(X0, noise)
+        dataset_biased = self._forward()
         dataset_biased[:, 0] = torch.where(dataset_biased[:, 0] < self.a_t, self.a0, self.a1)
         dataset_biased[:, -1] = (dataset_biased[:, -1] > self.y_t).long()
 
         # Fair pass
-        y_fair = self._forward_fair(X0, noise)
+        y_fair = self._forward_fair()
         y_fair = (y_fair > self.y_t).long()
         return dataset_biased, y_fair
+
+    def do_A(self, A):
+        X0 = self.X0.clone()
+        self.X0[:, self.k] = A
+        cf_dataset = self._forward()
+        cf_dataset[:, -1] = (cf_dataset[:, -1] > self.y_t).long()
+        self.X0 = X0
+        return cf_dataset
 
 # class SlowDataGenerator:
 #     def __init__(self, U, H, M, N):
